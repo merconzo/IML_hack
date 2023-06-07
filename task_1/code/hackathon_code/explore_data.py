@@ -35,6 +35,5 @@ def random_forest_exploring(X, y):
                                    "importances" : rf.feature_importances_})
 
     # Plotting bar chart, g is from graph
-    g = sns.barplot(x=importances_df["feature_names"],
-                    y=importances_df["importances"])
-    g.set_title("Feature importances", fontsize=14);
+    g = px.bar(importances_df, x="feature_names", y="importances", title="Feature importances")
+    g.show()
