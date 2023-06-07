@@ -31,5 +31,9 @@ def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
 
 # %%
 if __name__ == "__main__":
+    np.random.seed(0)
     data = pd.read_csv("./hackathon_code/data/agoda_cancellation_train.csv")
+    X_train, X_test, y_train, y_test = sk.model_selection.train_test_split(
+        test_size=0.2)
+
 # %%
