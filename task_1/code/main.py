@@ -7,6 +7,7 @@ import sklearn as sk
 from typing import Optional
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
+from hackathon_code.explore_data import random_forest_exploring
 
 # %%
 def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
@@ -33,7 +34,8 @@ def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
 if __name__ == "__main__":
     np.random.seed(0)
     data = pd.read_csv("./hackathon_code/data/agoda_cancellation_train.csv")
-    X_train, X_test, y_train, y_test = sk.model_selection.train_test_split(
-        test_size=0.2)
-
+    train, test = sk.model_selection.train_test_split(data, test_size=0.2)
+    X_train, y_train = train.drop(["cancellation_datetime"], axis=1), train["cancellation_datetime"]
+    X_test, y_test = test.drop(["cancellation_datetime"], axis=1), test["cancellation_datetime"]
+    random_forest_exploring(X_train, y_train)
 # %%
