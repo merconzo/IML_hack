@@ -77,25 +77,6 @@ def preprocess_data(X: df, y: op_col = None):
     #     X["has_" + code] = X[code].notnull().astype(int)
     X.loc[:, codes] = X[codes].fillna("UNKNOWN")
 
-    # dummies
-    X = pd.get_dummies(X, prefix='accommadation_type_name', columns=['accommadation_type_name'], dtype=int)
-    X, popular_brand_codes = make_dummies(X, 'hotel_brand_code', 100)
-    X, popular_hotel_id = make_dummies(X, 'hotel_id', 30)
-    X, popular_hotel_country_code = make_dummies(X, 'hotel_country_code', 30)
-    # print(len(popular_hotel_country_code))
-    X, popular_h_customer_id = make_dummies(X, 'h_customer_id', 20)
-    # print(len(popular_h_customer_id))
-    X, popular_customer_nationality = make_dummies(X, 'customer_nationality', 30)
-    # print(len(popular_customer_nationality))
-    X, popular_guest_nationality_country_name = make_dummies(X, 'guest_nationality_country_name', 30)
-    X, popular_origin_country_code = make_dummies(X, 'origin_country_code', 30)
-    X, popular_language = make_dummies(X, 'language', 30)
-    X, popular_original_payment_method = make_dummies(X, 'original_payment_method', 30)
-    X, popular_original_payment_type = make_dummies(X, 'original_payment_type', 30)
-    X, popular_original_payment_currency = make_dummies(X, 'original_payment_currency', 30)
-
-
-
     # means TODO: smarter means?
     means_cols = ["hotel_star_rating", "no_of_adults", "no_of_children", "no_of_extra_bed", "no_of_room", "original_selling_amount"]
     mean_dict = X[means_cols].mean().to_dict()
@@ -153,8 +134,24 @@ def preprocess_data(X: df, y: op_col = None):
     # costumer 
     X["no_orders_history"] = X_train.h_customer_id.map(
         X_train.h_customer_id.value_counts())
-
     X.drop(["cancellation_policy_code"], axis=1, inplace=True)
+
+    # dummies
+    X = pd.get_dummies(X, prefix='accommadation_type_name', columns=['accommadation_type_name'], dtype=int)
+    X, popular_brand_codes = make_dummies(X, 'hotel_brand_code', 100)
+    X, popular_hotel_id = make_dummies(X, 'hotel_id', 30)
+    X, popular_hotel_country_code = make_dummies(X, 'hotel_country_code', 30)
+    # print(len(popular_hotel_country_code))
+    X, popular_h_customer_id = make_dummies(X, 'h_customer_id', 20)
+    # print(len(popular_h_customer_id))
+    X, popular_customer_nationality = make_dummies(X, 'customer_nationality', 30)
+    # print(len(popular_customer_nationality))
+    X, popular_guest_nationality_country_name = make_dummies(X, 'guest_nationality_country_name', 30)
+    X, popular_origin_country_code = make_dummies(X, 'origin_country_code', 30)
+    X, popular_language = make_dummies(X, 'language', 30)
+    X, popular_original_payment_method = make_dummies(X, 'original_payment_method', 30)
+    X, popular_original_payment_type = make_dummies(X, 'original_payment_type', 30)
+    X, popular_original_payment_currency = make_dummies(X, 'original_payment_currency', 30)
 
     # DONE!
     return X.drop(Y_COL, axis=1), X[Y_COL] if y is not None else X
