@@ -154,17 +154,7 @@ def preprocess_data(X: df, y: op_col = None):
     X["no_orders_history"] = X_train.h_customer_id.map(
         X_train.h_customer_id.value_counts())
 
-    # dummies_cols  TODO: delete after treatment
-    dummies_cols = ["hotel_id", "hotel_country_code",
-                    "accommadation_type_name", "charge_option",
-                    "h_customer_id", "customer_nationality",
-                    "guest_nationality_country_name", "origin_country_code",
-                    "language", "original_payment_method",
-                    "original_payment_type", "original_payment_currency",
-                    "cancellation_policy_code", "hotel_area_code",
-                    "hotel_brand_code", "hotel_chain_code",
-                    "hotel_city_code"]
-    X.drop(dummies_cols, axis=1, inplace=True)
+    X.drop(["cancellation_policy_code"], axis=1, inplace=True)
 
     # DONE!
     return X.drop(Y_COL, axis=1), X[Y_COL] if y is not None else X
