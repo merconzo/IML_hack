@@ -50,6 +50,7 @@ def preprocess_data(X: df, y: op_col = None):
     if y is not None:  # train
         y.rename(Y_COL, inplace=True)
         X = pd.concat([X, y], axis=1)
+        X[Y_COL] = X[Y_COL].apply(lambda x: 1 if type(x) == str else 0)
     try:
         X.drop(["h_booking_id"], axis=1, inplace=True)
     except:
