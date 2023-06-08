@@ -26,6 +26,16 @@ Y_COL = "cancellation_datetime"
 CANCEL_COL = "cancellation_policy_code"
 
 
+class OurModel1:
+    def __init__(self):
+        self.means = None
+        self.popular_list = None
+        self.columns = None
+        self.model = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
+                                     sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1),
+                                                                         n_estimators=50))
+
+
 def make_dummies(X: df, column_name: str, ratio: int):
     value_counts = X[column_name].value_counts()
     to_replace = value_counts[value_counts < ratio].index
@@ -216,21 +226,18 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
 
 
 # %%
-def execute_task_1(data, test):
+def execute_task_1(our_model, test):
+    test, _, _, _ = preprocess_data(test, means=our_model.means, popular_list=our_model.popular_list)
+    test = test.reindex(columns=our_model.columns, fill_value=0)
+    return our_model.model.predict(test)
 
+def prepare_train_1(data):
+    our_model = OurModel1()
     X_train, y_train = data.drop([Y_COL], axis=1), data[Y_COL]
-    X_train, y_train, means, popular = preprocess_data(X_train, y_train, dict(), dict())
-    test, _, _, _ = preprocess_data(test, means=means, popular_list=popular)
-    test = test.reindex(columns=X_train.columns, fill_value=0)
-    pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
-                                     sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1),
-                                                                         n_estimators=50))
-    pipe.fit(X_train, y_train)
-    dump(pipe, "model_1.joblib")
-    # pipe = load("model_1.joblib")
-    return pipe.predict(test)
-
-
+    X_train, y_train, our_model.means, our_model.popular_list = preprocess_data(X_train, y_train, dict(), dict())
+    our_model.columns = X_train.columns
+    our_model.model.fit(X_train, y_train)
+    dump(our_model, "model_1.joblib")
 
 
 #
