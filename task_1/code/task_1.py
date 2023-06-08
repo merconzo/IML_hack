@@ -10,7 +10,6 @@ import sklearn.linear_model
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
-from hackathon_code.explore_data import random_forest_exploring
 import re
 
 import plotly.graph_objects as go
@@ -34,6 +33,7 @@ def make_dummies(X: df, column_name: str, ratio: int):
     popular_list = X[column_name].unique().tolist()
     X = pd.get_dummies(X, prefix=column_name, columns=[column_name], dtype=int)
     return X, popular_list
+
 
 def get_fee(row):
     cancel_codes = row[CANCEL_COL].split('_')
@@ -159,7 +159,7 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X["checkout_dayofyear"] = pd.to_datetime(X["checkout_date"]).dt.dayofyear
     X["days_book_to_checkin"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(X.booking_datetime)).dt.days
     X.loc[X.days_book_to_checkin < 0, "days_book_to_checkin"] = 0
-    X["satying_duration"] = (pd.to_datetime(X.checkout_date) -pd.to_datetime(X.checkin_date)).dt.days
+    X["satying_duration"] = (pd.to_datetime(X.checkout_date) - pd.to_datetime(X.checkin_date)).dt.days
     X["hotel_age_days"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(X.hotel_live_date)).dt.days
 
     # prices
@@ -216,37 +216,39 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
 
 
 # %%
-if __name__ == "__main__":
-    np.random.seed(0)
-    data = pd.read_csv("./hackathon_code/data/agoda_cancellation_train.csv")
-    cols = data.columns.values
+def execute_task_1(data, test):
 
-    our_data, test = sk.model_selection.train_test_split(data, test_size=0.2)
-    train, evaluation = sk.model_selection.train_test_split(our_data, test_size=0.2)
+    X_train, y_train = data.drop([Y_COL], axis=1), data[Y_COL]
+    X_train, y_train, means, popular = preprocess_data(X_train, y_train, dict(), dict())
+    test, _, _, _ = preprocess_data(test, means=means, popular_list=popular)
+    test = test.reindex(columns=X_train.columns, fill_value=0)
+    pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
+                                     sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1),
+                                                                         n_estimators=50))
+    pipe.fit(X_train, y_train)
+    return pipe.predict(test)
 
-    X_train, y_train = train.drop([Y_COL], axis=1), train[Y_COL]
-    X_eval, y_eval = evaluation.drop([Y_COL], axis=1), evaluation[Y_COL]
-    X_test, y_test = test.drop([Y_COL], axis=1), test[Y_COL]
 
-    means, popular = dict(), dict()
-    X_train, y_train, means, popular = preprocess_data(X_train, y_train, means, popular)
-    booking_id = X_eval["h_booking_id"]
-    X_eval, _, _, _ = preprocess_data(X_eval, means=means, popular_list=popular)
-    X_eval = X_eval.reindex(columns=X_train.columns, fill_value=0)
-    y_eval = y_eval.apply(lambda x: 1 if type(x) == str else 0)
 
-    pd.set_option('display.max_columns', None)  # Show all columns
-    pd.set_option('display.max_rows', None)  # Show all rows
-    pd.set_option('display.expand_frame_repr', False)  # Disable line breaks
 
-    # Print the DataFrame
-    with pd.option_context('display.max_colwidth', None):
-        pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
-                                         sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1), n_estimators=50))
-        pipe.fit(X_train, y_train)
-        predicted = pipe.predict(X_eval)
-        result = pd.DataFrame({'ID': booking_id, 'cancellation': predicted})
-        result.to_csv("agoda_cancellation_prediction.csv", index=False)
-        print(result)
-        print(pipe.score(X_eval, y_eval))
-# %%
+#
+#     our_data, test = sk.model_selection.train_test_split(data, test_size=0.2)
+#     train, evaluation = sk.model_selection.train_test_split(our_data, test_size=0.2)
+#
+#     X_train, y_train = train.drop([Y_COL], axis=1), train[Y_COL]
+#     X_eval, y_eval = evaluation.drop([Y_COL], axis=1), evaluation[Y_COL]
+#     X_test, y_test = test.drop([Y_COL], axis=1), test[Y_COL]
+#
+#     means, popular = dict(), dict()
+#     X_train, y_train, means, popular = preprocess_data(X_train, y_train, means, popular)
+#     booking_id = X_eval["h_booking_id"]
+#     X_eval, _, _, _ = preprocess_data(X_eval, means=means, popular_list=popular)
+#     X_eval = X_eval.reindex(columns=X_train.columns, fill_value=0)
+#     y_eval = y_eval.apply(lambda x: 1 if type(x) == str else 0)
+#     pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
+#                                      sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1),
+#                                                                          n_estimators=50))
+#     pipe.fit(X_train, y_train)
+#     predicted = pipe.predict(X_eval)
+#     print(pipe.score(X_eval, y_eval))
+# # %%
