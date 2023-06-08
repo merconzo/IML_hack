@@ -7,13 +7,12 @@ import sklearn as sk
 from typing import Optional
 import re
 
-# %%
-from task_1.code.task_1 import execute_task_1
+from task_1.code.task_1 import *
+from task_1.code.task_2 import *
 
 if __name__ == "__main__":
     np.random.seed(0)
     data = pd.read_csv("./hackathon_code/data/agoda_cancellation_train.csv")
-
 
     test_1 = pd.read_csv("./hackathon_code/data/Agoda_Test_1.csv")
     test_2 = pd.read_csv("./hackathon_code/data/Agoda_Test_2.csv")
@@ -21,8 +20,8 @@ if __name__ == "__main__":
     prediction_1 = execute_task_1(data, test_1)
     prediction_2 = execute_task_2(data, test_2)
     result_1 = pd.DataFrame({'ID': booking_id, 'cancellation': prediction_1})
-    result_2 = pd.DataFrame({'ID': booking_id, 'predicted_selling_amount': prediction_2})
+    result_2 = pd.DataFrame({'ID': booking_id,
+                             'predicted_selling_amount': prediction_2})
     result_1.to_csv("agoda_cancellation_prediction.csv", index=False)
-    result_1.to_csv("agoda_cost_of_cancellation.csv", index=False)
-    print(result)
+    result_2.to_csv("agoda_cost_of_cancellation.csv", index=False)
 # %%

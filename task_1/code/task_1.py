@@ -34,7 +34,6 @@ def make_dummies(X: df, column_name: str, ratio: int):
     X = pd.get_dummies(X, prefix=column_name, columns=[column_name], dtype=int)
     return X, popular_list
 
-
 def get_fee(row):
     cancel_codes = row[CANCEL_COL].split('_')
     if '100P' in cancel_codes:
@@ -159,15 +158,16 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X["checkout_dayofyear"] = pd.to_datetime(X["checkout_date"]).dt.dayofyear
     X["days_book_to_checkin"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(X.booking_datetime)).dt.days
     X.loc[X.days_book_to_checkin < 0, "days_book_to_checkin"] = 0
-    X["satying_duration"] = (pd.to_datetime(X.checkout_date) - pd.to_datetime(X.checkin_date)).dt.days
-    X["hotel_age_days"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(X.hotel_live_date)).dt.days
+    X["staying_duration"] = (pd.to_datetime(X.checkout_date) - pd.to_datetime(X.checkin_date)).dt.days
+    X["hotel_age_days"] = (pd.to_datetime(X.checkin_date) -
+                           pd.to_datetime(X.hotel_live_date)).dt.days
 
     # prices
-    X["total_price_per_night"] = X.original_selling_amount / X.satying_duration
+    X["total_price_per_night"] = X.original_selling_amount / X.staying_duration
     X["room_price_per_night"] = X.total_price_per_night / X.no_of_room
     X["total_price_for_adult"] = X.original_selling_amount / X.no_of_adults
     X["total_price_for_adult_per_night"] = X.total_price_for_adult / \
-                                           X.satying_duration
+                                           X.staying_duration
     dates_cols = ["booking_datetime", "checkin_date", "checkout_date",
                   "hotel_live_date"]
     X.drop(dates_cols, axis=1, inplace=True)
@@ -252,3 +252,16 @@ def execute_task_1(data, test):
 #     predicted = pipe.predict(X_eval)
 #     print(pipe.score(X_eval, y_eval))
 # # %%
+    pd.set_option('display.max_columns', None)  # Show all columns
+    pd.set_option('display.max_rows', None)  # Show all rows
+    pd.set_option('display.expand_frame_repr', False)  # Disable line breaks
+
+    pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
+                                     sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1), n_estimators=50))
+    pipe.fit(X_train, y_train)
+    predicted = pipe.predict(X_eval)
+    result = pd.DataFrame({'ID': booking_id, 'cancellation': predicted})
+    result.to_csv("agoda_cancellation_prediction.csv", index=False)
+    print(result)
+    print(pipe.score(X_eval, y_eval))
+# %%

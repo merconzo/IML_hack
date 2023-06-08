@@ -1,6 +1,5 @@
-# %%
-# import sys
-# sys.path.append("./")
+# %% Cost of cancellation
+
 import pandas as pd
 import numpy as np
 import sklearn as sk
@@ -10,7 +9,6 @@ import sklearn.linear_model
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
-from hackathon_code.explore_data import random_forest_exploring
 import re
 
 import plotly.graph_objects as go
@@ -23,8 +21,11 @@ col = pd.Series
 op_col = Optional[col]
 
 # constants
-Y_COL = "cancellation_datetime"
+Y_COL = "original_selling_amount"
 CANCEL_COL = "cancellation_policy_code"
+PRED_COL = "predicted_selling_amount"
+OUT_FILE_NAME = "agoda_cost_of_cancellation.csv"
+NO_CANCEL = (-1)
 
 
 def make_dummies(X: df, column_name: str, ratio: int):
@@ -40,8 +41,6 @@ def get_fee(row):
     if '100P' in cancel_codes:
         cancel_codes.remove('100P')
     days_book_to_checkin = row.days_book_to_checkin
-    night_charge = row.room_price_per_night
-    total_charge = row.original_selling_amount
     if not cancel_codes:
         return None, None, None
     code_pattern = r'\d+D\d+[PN]'
@@ -51,49 +50,23 @@ def get_fee(row):
     for code in cancel_codes:
         if not re.match(code_pattern, code):
             continue
-        nums = re.findall(r'\d+', code)
-        days_cancel_before_checkin, charge_num = int(nums[0]), int(nums[1])
+        parts = code.split('D')
+        days_cancel_before_checkin, charge_num = int(parts[0]), parts[1]
         is_p = True if code[-1] == 'P' else False
         is_after_deadline = days_book_to_checkin <= days_cancel_before_checkin
-        fee = (charge_num / 100) * total_charge if is_p else charge_num * night_charge
-        possible_fees.append(fee)
         after_lst.append(is_after_deadline)
         days.append(days_cancel_before_checkin)
-    if possible_fees:
-        max_val = max(possible_fees)
-        days_for_max = days[possible_fees.index(max_val)]
-        min_val = min(possible_fees)
-        days_for_min = days[possible_fees.index(min_val)]
-    else:
-        max_val = total_charge
-        days_for_max = days_book_to_checkin
-        min_val = night_charge
-        days_for_min = days_book_to_checkin
+
+    days_for_min = days_book_to_checkin
     all_after = 1 if all(after_lst) else 0
-    return max_val, days_for_max, min_val, days_for_min, all_after
+    return
 
 
 # %%
 def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
-    """
-    preprocess data
-    Parameters
-    ----------
-    X : DataFrame of shape (n_samples, n_features)
-        Design matrix of regression problem
-
-    y : array-like of shape (n_samples, )
-        Response vector corresponding given samples
-
-    Returns
-    -------
-    Post-processed design matrix and response vector (prices) - either as a
-    single DataFrame or a Tuple[DataFrame, Series]
-    """
     if y is not None:  # train
         y.rename(Y_COL, inplace=True)
         X = pd.concat([X, y], axis=1)
-        X[Y_COL] = X[Y_COL].apply(lambda x: 1 if type(x) == str else 0)
     try:
         X.drop(["h_booking_id"], axis=1, inplace=True)
     except:
@@ -120,8 +93,8 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X.loc[:, codes] = X[codes].fillna("UNKNOWN")
 
     # means TODO: smarter means?
-    means_cols = ["hotel_star_rating", "no_of_adults", "no_of_children", "no_of_extra_bed", "no_of_room",
-                  "original_selling_amount"]
+    means_cols = ["hotel_star_rating", "no_of_adults", "no_of_children",
+                  "no_of_extra_bed", "no_of_room"]
     if y is not None:
         means = X[means_cols].mean().to_dict()
         means["hotel_star_rating"] = round(means["hotel_star_rating"] * 2) / 2
@@ -142,7 +115,8 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X["guests_to_rooms_ratio"] = X["no_total_guests"] / X["no_of_room"]
 
     if y is not None:
-        X = X[(1 <= X["guests_to_rooms_ratio"]) & (X["guests_to_rooms_ratio"] < 17)]
+        X = X[(1 <= X["guests_to_rooms_ratio"]) & (
+                X["guests_to_rooms_ratio"] < 17)]
 
     # booking times
     X["booking_year"] = pd.to_datetime(X["booking_datetime"]).dt.year
@@ -157,55 +131,77 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
         ["checkin_date", "checkout_date"]].apply(pd.to_datetime)
     X["checkin_dayofyear"] = pd.to_datetime(X["checkin_date"]).dt.dayofyear
     X["checkout_dayofyear"] = pd.to_datetime(X["checkout_date"]).dt.dayofyear
-    X["days_book_to_checkin"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(X.booking_datetime)).dt.days
+    X["days_book_to_checkin"] = (
+            pd.to_datetime(X.checkin_date) - pd.to_datetime(
+        X.booking_datetime)).dt.days
     X.loc[X.days_book_to_checkin < 0, "days_book_to_checkin"] = 0
-    X["satying_duration"] = (pd.to_datetime(X.checkout_date) -pd.to_datetime(X.checkin_date)).dt.days
-    X["hotel_age_days"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(X.hotel_live_date)).dt.days
-
-    # prices
-    X["total_price_per_night"] = X.original_selling_amount / X.satying_duration
-    X["room_price_per_night"] = X.total_price_per_night / X.no_of_room
-    X["total_price_for_adult"] = X.original_selling_amount / X.no_of_adults
-    X["total_price_for_adult_per_night"] = X.total_price_for_adult / \
-                                           X.satying_duration
+    X["staying_duration"] = (pd.to_datetime(X.checkout_date) - pd.to_datetime(
+        X.checkin_date)).dt.days
+    X["hotel_age_days"] = (pd.to_datetime(X.checkin_date) -
+                           pd.to_datetime(X.hotel_live_date)).dt.days
     dates_cols = ["booking_datetime", "checkin_date", "checkout_date",
                   "hotel_live_date"]
     X.drop(dates_cols, axis=1, inplace=True)
 
     # costumer
-    X["no_orders_history"] = X.h_customer_id.map(X.h_customer_id.value_counts())
-
-    X[['max_fee', "days_for_max", 'min_fee', 'days_for_min',
-       'is_after_deadline']] = X.apply(get_fee, axis=1, result_type='expand')
+    X["no_orders_history"] = X.h_customer_id.map(
+        X.h_customer_id.value_counts())
+    # TODO: dummies?
     X.drop(["cancellation_policy_code"], axis=1, inplace=True)
 
     # dummies
-    dummis = ["accommadation_type_name", "hotel_brand_code", "hotel_chain_code", "hotel_city_code", "hotel_area_code",
-              "hotel_id", "hotel_country_code", "h_customer_id", "customer_nationality",
+    dummis = ["accommadation_type_name", "hotel_brand_code",
+              "hotel_chain_code", "hotel_city_code", "hotel_area_code",
+              "hotel_id", "hotel_country_code", "h_customer_id",
+              "customer_nationality",
               "guest_nationality_country_name",
-              "origin_country_code", "language", "original_payment_method", "original_payment_type",
+              "origin_country_code", "language", "original_payment_method",
+              "original_payment_type",
               "original_payment_currency"]
     if y is not None:
-        popular_list["accommadation_type_name"] = X["accommadation_type_name"].unique()
-        X = pd.get_dummies(X, prefix='accommadation_type_name', columns=['accommadation_type_name'], dtype=int)
-        X, popular_list["hotel_brand_code"] = make_dummies(X, 'hotel_brand_code', 20)
-        X, popular_list["hotel_chain_code"] = make_dummies(X, 'hotel_chain_code', 20)
-        X, popular_list["hotel_city_code"] = make_dummies(X, 'hotel_city_code', 20)
-        X, popular_list["hotel_area_code"] = make_dummies(X, 'hotel_area_code', 20)
+        popular_list["accommadation_type_name"] = X[
+            "accommadation_type_name"].unique()
+        X = pd.get_dummies(X, prefix='accommadation_type_name',
+                           columns=['accommadation_type_name'], dtype=int)
+        X, popular_list["hotel_brand_code"] = make_dummies(X,
+                                                           'hotel_brand_code',
+                                                           20)
+        X, popular_list["hotel_chain_code"] = make_dummies(X,
+                                                           'hotel_chain_code',
+                                                           20)
+        X, popular_list["hotel_city_code"] = make_dummies(X, 'hotel_city_code',
+                                                          20)
+        X, popular_list["hotel_area_code"] = make_dummies(X, 'hotel_area_code',
+                                                          20)
         X, popular_list["hotel_id"] = make_dummies(X, 'hotel_id', 10)
-        X, popular_list["hotel_country_code"] = make_dummies(X, 'hotel_country_code', 10)
+        X, popular_list["hotel_country_code"] = make_dummies(X,
+                                                             'hotel_country_code',
+                                                             10)
         X, popular_list["h_customer_id"] = make_dummies(X, 'h_customer_id', 5)
-        X, popular_list["customer_nationality"] = make_dummies(X, 'customer_nationality', 10)
-        X, popular_list["guest_nationality_country_name"] = make_dummies(X, 'guest_nationality_country_name', 10)
-        X, popular_list["origin_country_code"] = make_dummies(X, 'origin_country_code', 10)
+        X, popular_list["customer_nationality"] = make_dummies(X,
+                                                               'customer_nationality',
+                                                               10)
+        X, popular_list["guest_nationality_country_name"] = make_dummies(X,
+                                                                         'guest_nationality_country_name',
+                                                                         10)
+        X, popular_list["origin_country_code"] = make_dummies(X,
+                                                              'origin_country_code',
+                                                              10)
         X, popular_list["language"] = make_dummies(X, 'language', 10)
-        X, popular_list["original_payment_method"] = make_dummies(X, 'original_payment_method', 10)
-        X, popular_list["original_payment_type"] = make_dummies(X, 'original_payment_type', 10)
-        X, popular_list["original_payment_currency"] = make_dummies(X, 'original_payment_currency', 10)
+        X, popular_list["original_payment_method"] = make_dummies(X,
+                                                                  'original_payment_method',
+                                                                  10)
+        X, popular_list["original_payment_type"] = make_dummies(X,
+                                                                'original_payment_type',
+                                                                10)
+        X, popular_list["original_payment_currency"] = make_dummies(X,
+                                                                    'original_payment_currency',
+                                                                    10)
 
     else:
         for dummy in dummis:
-            X[dummy] = X[dummy].where(X[dummy].isin(popular_list[dummy]), other=pd.NA)
+            X[dummy] = X[dummy].where(X[dummy].isin(popular_list[dummy]),
+                                      other=pd.NA)
             X = pd.get_dummies(X, prefix=dummy, columns=[dummy], dtype=int)
 
     # DONE!
@@ -215,38 +211,50 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
         return X, None, None, None
 
 
-# %%
-if __name__ == "__main__":
-    np.random.seed(0)
-    data = pd.read_csv("./hackathon_code/data/agoda_cancellation_train.csv")
-    cols = data.columns.values
-
+def save_model(data, abs_test):
     our_data, test = sk.model_selection.train_test_split(data, test_size=0.2)
-    train, evaluation = sk.model_selection.train_test_split(our_data, test_size=0.2)
+    train, evaluation = sk.model_selection.train_test_split(our_data,
+                                                            test_size=0.2)
 
     X_train, y_train = train.drop([Y_COL], axis=1), train[Y_COL]
     X_eval, y_eval = evaluation.drop([Y_COL], axis=1), evaluation[Y_COL]
     X_test, y_test = test.drop([Y_COL], axis=1), test[Y_COL]
 
     means, popular = dict(), dict()
-    X_train, y_train, means, popular = preprocess_data(X_train, y_train, means, popular)
-    booking_id = X_eval["h_booking_id"]
-    X_eval, _, _, _ = preprocess_data(X_eval, means=means, popular_list=popular)
+    X_train, y_train, means, popular = preprocess_data(X_train, y_train, means,
+                                                       popular)
+    X_eval, _, _, _ = preprocess_data(X_eval, means=means,
+                                      popular_list=popular)
     X_eval = X_eval.reindex(columns=X_train.columns, fill_value=0)
     y_eval = y_eval.apply(lambda x: 1 if type(x) == str else 0)
 
-    pd.set_option('display.max_columns', None)  # Show all columns
-    pd.set_option('display.max_rows', None)  # Show all rows
-    pd.set_option('display.expand_frame_repr', False)  # Disable line breaks
+    pipe = sk.pipeline.make_pipeline(
+        sklearn.preprocessing.StandardScaler(),
+        sklearn.ensemble.AdaBoostClassifier(
+            sk.tree.DecisionTreeClassifier(max_depth=1),
+            n_estimators=50))
+    pipe.fit(X_train, y_train)
+    predicted = pipe.predict(X_eval)
+    result = pd.DataFrame({'ID': booking_id, 'cancellation': predicted})
+    result.to_csv(OUT_FILE_NAME, index=False)
+    return pipe.predict(test)
 
-    # Print the DataFrame
-    with pd.option_context('display.max_colwidth', None):
-        pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
-                                         sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1), n_estimators=50))
-        pipe.fit(X_train, y_train)
-        predicted = pipe.predict(X_eval)
-        result = pd.DataFrame({'ID': booking_id, 'cancellation': predicted})
-        result.to_csv("agoda_cancellation_prediction.csv", index=False)
-        print(result)
-        print(pipe.score(X_eval, y_eval))
+
+# %%
+def execute_task_2(data, abs_test):
+    cols = data.columns.values
+    model = save_model(data, abs_test)
+
+
+if __name__ == "__main__":
+    np.random.seed(0)
+    data = pd.read_csv("./hackathon_code/data/agoda_cancellation_train.csv")
+
+    test_2 = pd.read_csv("./hackathon_code/data/Agoda_Test_2.csv")
+    booking_id = test_2["h_booking_id"]
+    prediction_2 = execute_task_2(data, test_2)
+    result_2 = pd.DataFrame({'ID': booking_id,
+                             'predicted_selling_amount': prediction_2})
+    result_2.to_csv(OUT_FILE_NAME, index=False)
+
 # %%
