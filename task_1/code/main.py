@@ -36,7 +36,8 @@ def preprocess_data(X: df, y: op_col = None):
 
     Returns
     -------
-    Post-processed design matrix and response vector (prices) - either as a single DataFrame or a Tuple[DataFrame, Series]
+    Post-processed design matrix and response vector (prices) - either as a
+    single DataFrame or a Tuple[DataFrame, Series]
     """
     if y is not None:  # train
         y.rename(Y_COL, inplace=True)
@@ -48,16 +49,21 @@ def preprocess_data(X: df, y: op_col = None):
 
     # nans replacements
     X.replace("UNKNOWN", np.nan, inplace=True)
-    X["charge_option"] = X["charge_option"].apply(lambda x: np.where(x == 'Pay Now', 1, 0))
+    X["charge_option"] = X["charge_option"].apply(
+        lambda x: np.where(x == 'Pay Now', 1, 0))
 
-    requests = ["request_earlycheckin", "request_airport", "request_twinbeds", "request_largebed",
-                       "request_highfloor", "request_latecheckin", "request_nonesmoke"]
+    requests = ["request_earlycheckin", "request_airport", "request_twinbeds",
+                "request_largebed",
+                "request_highfloor", "request_latecheckin",
+                "request_nonesmoke"]
 
     for request in requests:
         X["is_available_to_" + request] = X[request].notnull().astype(int)
     X.loc[:, requests] = X[requests].fillna(0)
-    codes = ["hotel_brand_code", "hotel_chain_code", "hotel_country_code", "origin_country_code",
-             "original_payment_method", "customer_nationality", "cancellation_policy_code", "accommadation_type_name",
+    codes = ["hotel_brand_code", "hotel_chain_code", "hotel_country_code",
+             "origin_country_code",
+             "original_payment_method", "customer_nationality",
+             "cancellation_policy_code", "accommadation_type_name",
              "guest_nationality_country_name"]
     for code in codes:
         X["has_" + code] = X[code].notnull().astype(int)
@@ -71,7 +77,7 @@ def preprocess_data(X: df, y: op_col = None):
     X["guests_to_rooms_ratio"] = X["no_total_guests"] / X["no_of_room"]
     X = X[
         (1 <= X["guests_to_rooms_ratio"]) & (X["guests_to_rooms_ratio"] < 17)]
-    
+
     # booking times
     X["booking_year"] = pd.to_datetime(X["booking_datetime"]).dt.year
     X["booking_month"] = pd.to_datetime(X["booking_datetime"]).dt.month
@@ -81,10 +87,24 @@ def preprocess_data(X: df, y: op_col = None):
         X["booking_datetime"]).dt.dayofyear
     X["booking_hour"] = pd.to_datetime(
         X["booking_datetime"]).dt.hour
-    X[["checkin_date", "checkout_date"]] = X[["checkin_date", "checkout_date"]].apply(pd.to_datetime)
+    X[["checkin_date", "checkout_date"]] = X[
+        ["checkin_date", "checkout_date"]].apply(pd.to_datetime)
     X["checkin_dayofyear"] = pd.to_datetime(X["checkin_date"]).dt.dayofyear
     X["checkout_dayofyear"] = pd.to_datetime(X["checkout_date"]).dt.dayofyear
-    X["days_book_to_checkin"] = (pd.to_datetime(X_train.checkin_date) - pd.to_datetime(X_train.booking_datetime)).dt.days
+    X["days_book_to_checkin"] = (
+            pd.to_datetime(X_train.checkin_date) - pd.to_datetime(
+        X_train.booking_datetime)).dt.days
+    X.days_book_to_checkin[X.days_book_to_checkin < 0] = 0
+    X["satying_duration"] = (pd.to_datetime(X_train.checkout_date) -
+                             pd.to_datetime(X_train.checkin_date)).dt.days
+
+    # prices
+    X["total_price_per_night"] = X.original_selling_amount / X.satying_duration
+    X["room_price_per_night"] = X.total_price_per_night / X.no_of_room
+    X["total_price_for_adult"] = X.original_selling_amount / X.no_of_adults
+    X[
+        "total_price_for_adult_per_night"] = X.total_price_for_adult / \
+                                             X.satying_duration
 
     return X.drop(Y_COL, axis=1), X[Y_COL] if y is not None else X
 
@@ -116,7 +136,7 @@ if __name__ == "__main__":
     #     yaxis=dict(title=f"no_of_room", showgrid=True)
     #     ).show()
 
-    #%%
+    # %%
     pd.set_option('display.max_columns', None)  # Show all columns
     pd.set_option('display.max_rows', None)  # Show all rows
     pd.set_option('display.expand_frame_repr', False)  # Disable line breaks
