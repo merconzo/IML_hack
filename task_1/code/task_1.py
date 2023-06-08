@@ -70,7 +70,7 @@ def get_fee(row):
         min_val = night_charge
         days_for_min = days_book_to_checkin
     all_after = 1 if all(after_lst) else 0
-    return max_val, min_val, all_after
+    return max_val, days_for_max, min_val, days_for_min, all_after
 
 
 # %%
