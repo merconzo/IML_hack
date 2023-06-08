@@ -261,16 +261,16 @@ def prepare_train_1(data):
 #     predicted = pipe.predict(X_eval)
 #     print(pipe.score(X_eval, y_eval))
 # # %%
-    pd.set_option('display.max_columns', None)  # Show all columns
-    pd.set_option('display.max_rows', None)  # Show all rows
-    pd.set_option('display.expand_frame_repr', False)  # Disable line breaks
-
-    pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
-                                     sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1), n_estimators=50))
-    pipe.fit(X_train, y_train)
-    predicted = pipe.predict(X_eval)
-    result = pd.DataFrame({'ID': booking_id, 'cancellation': predicted})
-    result.to_csv("agoda_cancellation_prediction.csv", index=False)
-    print(result)
-    print(pipe.score(X_eval, y_eval))
+#     pd.set_option('display.max_columns', None)  # Show all columns
+#     pd.set_option('display.max_rows', None)  # Show all rows
+#     pd.set_option('display.expand_frame_repr', False)  # Disable line breaks
+#
+#     pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
+#                                      sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1), n_estimators=50))
+#     pipe.fit(X_train, y_train)
+#     predicted = pipe.predict(X_eval)
+#     result = pd.DataFrame({'ID': booking_id, 'cancellation': predicted})
+#     result.to_csv("agoda_cancellation_prediction.csv", index=False)
+#     print(result)
+#     print(pipe.score(X_eval, y_eval))
 # %%

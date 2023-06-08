@@ -1,4 +1,5 @@
 # %% Cost of cancellation
+import copy
 
 import pandas as pd
 import numpy as np
@@ -34,8 +35,7 @@ class OurModel2:
         self.popular_list = None
         self.columns = None
         self.model = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
-                                     sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1),
-                                                                         n_estimators=50))
+                                     sklearn.ensemble.HistGradientBoostingRegressor())
 
 def make_dummies(X: df, column_name: str, ratio: int):
     value_counts = X[column_name].value_counts()
@@ -269,9 +269,11 @@ if __name__ == "__main__":
 # %%
 
 def execute_task_2(our_model, test):
-    test, _, _, _ = preprocess_data(test, means=our_model.means, popular_list=our_model.popular_list)
-    test = test.reindex(columns=our_model.columns, fill_value=0)
-    return our_model.model.predict(test)
+    processed_test, _, _, _ = preprocess_data(copy.deepcopy(test), means=our_model.means, popular_list=our_model.popular_list)
+    processed_test = processed_test.reindex(columns=our_model.columns, fill_value=0)
+    predicted_value = our_model.model.predict(processed_test)
+    test['original_selling_amount'] = predicted_value
+    return test
 
 def prepare_train_2(data):
     our_model = OurModel2()
