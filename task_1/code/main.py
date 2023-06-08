@@ -96,6 +96,17 @@ def preprocess_data(X: df, y: op_col = None):
 
 
 
+    # means TODO: smarter means?
+    means_cols = ["hotel_star_rating", "no_of_adults", "no_of_children", "no_of_extra_bed", "no_of_room", "original_selling_amount"]
+    mean_dict = X[means_cols].mean().to_dict()
+    mean_dict["hotel_star_rating"] = round(mean_dict["hotel_star_rating"] * 2) / 2
+    mean_dict["no_of_adults"] = int(mean_dict["no_of_adults"])
+    mean_dict["no_of_children"] = int(mean_dict["no_of_children"])
+    mean_dict["no_of_extra_bed"] = int(mean_dict["no_of_extra_bed"])
+    mean_dict["no_of_room"] = int(mean_dict["no_of_room"])
+    for key, val in mean_dict.items():
+        X[key] = X[key].apply(lambda x: x if x >= 0 else val)
+
     # bool cols
     X.is_user_logged_in = X.is_user_logged_in.astype(int)
     X.is_first_booking = X.is_first_booking.astype(int)
@@ -144,16 +155,16 @@ def preprocess_data(X: df, y: op_col = None):
         X_train.h_customer_id.value_counts())
 
     # dummies_cols  TODO: delete after treatment
-    # dummies_cols = ["hotel_id", "hotel_country_code",
-    #                 "accommadation_type_name", "charge_option",
-    #                 "h_customer_id", "customer_nationality",
-    #                 "guest_nationality_country_name", "origin_country_code",
-    #                 "language", "original_payment_method",
-    #                 "original_payment_type", "original_payment_currency",
-    #                 "cancellation_policy_code", "hotel_area_code",
-    #                 "hotel_brand_code", "hotel_chain_code",
-    #                 "hotel_city_code"]
-    # X.drop(dummies_cols, axis=1, inplace=True)
+    dummies_cols = ["hotel_id", "hotel_country_code",
+                    "accommadation_type_name", "charge_option",
+                    "h_customer_id", "customer_nationality",
+                    "guest_nationality_country_name", "origin_country_code",
+                    "language", "original_payment_method",
+                    "original_payment_type", "original_payment_currency",
+                    "cancellation_policy_code", "hotel_area_code",
+                    "hotel_brand_code", "hotel_chain_code",
+                    "hotel_city_code"]
+    X.drop(dummies_cols, axis=1, inplace=True)
 
     # DONE!
     return X.drop(Y_COL, axis=1), X[Y_COL] if y is not None else X
