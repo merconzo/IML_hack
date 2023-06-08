@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import sklearn as sk
 from typing import Optional
-
+from joblib import dump, load
 import sklearn.linear_model
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import RandomizedSearchCV
@@ -56,9 +56,7 @@ def get_fee(row):
         days_cancel_before_checkin, charge_num = int(nums[0]), int(nums[1])
         is_p = True if code[-1] == 'P' else False
         is_after_deadline = days_book_to_checkin <= days_cancel_before_checkin
-        fee = (
-                      charge_num / 100) * total_charge if is_p else \
-            charge_num * night_charge
+        fee = (charge_num / 100) * total_charge if is_p else charge_num * night_charge
         possible_fees.append(fee)
         after_lst.append(is_after_deadline)
         days.append(days_cancel_before_checkin)
@@ -201,20 +199,20 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     if y is not None:
         popular_list["accommadation_type_name"] = X["accommadation_type_name"].unique()
         X = pd.get_dummies(X, prefix='accommadation_type_name', columns=['accommadation_type_name'], dtype=int)
-        X, popular_list["hotel_brand_code"] = make_dummies(X, 'hotel_brand_code', 20)
-        X, popular_list["hotel_chain_code"] = make_dummies(X, 'hotel_chain_code', 20)
-        X, popular_list["hotel_city_code"] = make_dummies(X, 'hotel_city_code', 20)
-        X, popular_list["hotel_area_code"] = make_dummies(X, 'hotel_area_code', 20)
-        X, popular_list["hotel_id"] = make_dummies(X, 'hotel_id', 10)
-        X, popular_list["hotel_country_code"] = make_dummies(X, 'hotel_country_code', 10)
-        X, popular_list["h_customer_id"] = make_dummies(X, 'h_customer_id', 5)
-        X, popular_list["customer_nationality"] = make_dummies(X, 'customer_nationality', 10)
-        X, popular_list["guest_nationality_country_name"] = make_dummies(X, 'guest_nationality_country_name', 10)
-        X, popular_list["origin_country_code"] = make_dummies(X, 'origin_country_code', 10)
-        X, popular_list["language"] = make_dummies(X, 'language', 10)
-        X, popular_list["original_payment_method"] = make_dummies(X, 'original_payment_method', 10)
-        X, popular_list["original_payment_type"] = make_dummies(X, 'original_payment_type', 10)
-        X, popular_list["original_payment_currency"] = make_dummies(X, 'original_payment_currency', 10)
+        X, popular_list["hotel_brand_code"] = make_dummies(X, 'hotel_brand_code', 100)
+        X, popular_list["hotel_chain_code"] = make_dummies(X, 'hotel_chain_code', 100)
+        X, popular_list["hotel_city_code"] = make_dummies(X, 'hotel_city_code', 100)
+        X, popular_list["hotel_area_code"] = make_dummies(X, 'hotel_area_code', 100)
+        X, popular_list["hotel_id"] = make_dummies(X, 'hotel_id', 30)
+        X, popular_list["hotel_country_code"] = make_dummies(X, 'hotel_country_code', 30)
+        X, popular_list["h_customer_id"] = make_dummies(X, 'h_customer_id', 20)
+        X, popular_list["customer_nationality"] = make_dummies(X, 'customer_nationality', 30)
+        X, popular_list["guest_nationality_country_name"] = make_dummies(X, 'guest_nationality_country_name', 30)
+        X, popular_list["origin_country_code"] = make_dummies(X, 'origin_country_code', 30)
+        X, popular_list["language"] = make_dummies(X, 'language', 30)
+        X, popular_list["original_payment_method"] = make_dummies(X, 'original_payment_method', 30)
+        X, popular_list["original_payment_type"] = make_dummies(X, 'original_payment_type', 30)
+        X, popular_list["original_payment_currency"] = make_dummies(X, 'original_payment_currency', 30)
 
     else:
         for dummy in dummis:
@@ -235,7 +233,8 @@ if __name__ == "__main__":
     cols = data.columns.values
 
     our_data, test = sk.model_selection.train_test_split(data, test_size=0.2)
-    train, evaluation = sk.model_selection.train_test_split(our_data, test_size=0.2)
+    train, evaluation = sk.model_selection.train_test_split(our_data,
+                                                            test_size=0.2)
 
     X_train, y_train = train.drop([Y_COL], axis=1), train[Y_COL]
     X_eval, y_eval = evaluation.drop([Y_COL], axis=1), evaluation[Y_COL]
