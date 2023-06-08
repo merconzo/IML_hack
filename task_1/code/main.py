@@ -35,6 +35,7 @@ def make_dummies(X: df, column_name: str, ratio: int):
     X = pd.get_dummies(X, prefix=column_name, columns=[column_name], dtype=int)
     return X, popular_list
 
+
 def get_fee(row):
     cancel_codes = row[CANCEL_COL].split('_')
     if '100P' in cancel_codes:
@@ -55,7 +56,9 @@ def get_fee(row):
         days_cancel_before_checkin, charge_num = int(nums[0]), int(nums[1])
         is_p = True if code[-1] == 'P' else False
         is_after_deadline = days_book_to_checkin <= days_cancel_before_checkin
-        fee = (charge_num / 100) * total_charge if is_p else charge_num * night_charge
+        fee = (
+                      charge_num / 100) * total_charge if is_p else \
+            charge_num * night_charge
         possible_fees.append(fee)
         after_lst.append(is_after_deadline)
         days.append(days_cancel_before_checkin)
@@ -70,7 +73,7 @@ def get_fee(row):
         min_val = night_charge
         days_for_min = days_book_to_checkin
     all_after = 1 if all(after_lst) else 0
-    return max_val, min_val, all_after
+    return max_val, days_for_max, min_val, days_for_min, all_after
 
 
 # %%
@@ -120,7 +123,8 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X.loc[:, codes] = X[codes].fillna("UNKNOWN")
 
     # means TODO: smarter means?
-    means_cols = ["hotel_star_rating", "no_of_adults", "no_of_children", "no_of_extra_bed", "no_of_room",
+    means_cols = ["hotel_star_rating", "no_of_adults", "no_of_children",
+                  "no_of_extra_bed", "no_of_room",
                   "original_selling_amount"]
     if y is not None:
         means = X[means_cols].mean().to_dict()
@@ -142,7 +146,8 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X["guests_to_rooms_ratio"] = X["no_total_guests"] / X["no_of_room"]
 
     if y is not None:
-        X = X[(1 <= X["guests_to_rooms_ratio"]) & (X["guests_to_rooms_ratio"] < 17)]
+        X = X[(1 <= X["guests_to_rooms_ratio"]) & (
+                X["guests_to_rooms_ratio"] < 17)]
 
     # booking times
     X["booking_year"] = pd.to_datetime(X["booking_datetime"]).dt.year
@@ -157,10 +162,14 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
         ["checkin_date", "checkout_date"]].apply(pd.to_datetime)
     X["checkin_dayofyear"] = pd.to_datetime(X["checkin_date"]).dt.dayofyear
     X["checkout_dayofyear"] = pd.to_datetime(X["checkout_date"]).dt.dayofyear
-    X["days_book_to_checkin"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(X.booking_datetime)).dt.days
+    X["days_book_to_checkin"] = (
+            pd.to_datetime(X.checkin_date) - pd.to_datetime(
+        X.booking_datetime)).dt.days
     X.loc[X.days_book_to_checkin < 0, "days_book_to_checkin"] = 0
-    X["satying_duration"] = (pd.to_datetime(X.checkout_date) -pd.to_datetime(X.checkin_date)).dt.days
-    X["hotel_age_days"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(X.hotel_live_date)).dt.days
+    X["satying_duration"] = (pd.to_datetime(X.checkout_date) - pd.to_datetime(
+        X.checkin_date)).dt.days
+    X["hotel_age_days"] = (pd.to_datetime(X.checkin_date) - pd.to_datetime(
+        X.hotel_live_date)).dt.days
 
     # prices
     X["total_price_per_night"] = X.original_selling_amount / X.satying_duration
@@ -173,17 +182,21 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X.drop(dates_cols, axis=1, inplace=True)
 
     # costumer 
-    X["no_orders_history"] = X_train.h_customer_id.map(
-        X_train.h_customer_id.value_counts())
+    X["no_orders_history"] = X.h_customer_id.map(
+        X.h_customer_id.value_counts())
 
-    X[['max_fee', 'min_fee', 'is_after_deadline']] = X.apply(get_fee, axis=1, result_type='expand')
+    X[['max_fee', "days_for_max", 'min_fee', 'days_for_min',
+       'is_after_deadline']] = X.apply(get_fee, axis=1, result_type='expand')
     X.drop(["cancellation_policy_code"], axis=1, inplace=True)
 
     # dummies
-    dummis = ["accommadation_type_name", "hotel_brand_code", "hotel_chain_code", "hotel_city_code", "hotel_area_code",
-              "hotel_id", "hotel_country_code", "h_customer_id", "customer_nationality",
+    dummis = ["accommadation_type_name", "hotel_brand_code",
+              "hotel_chain_code", "hotel_city_code", "hotel_area_code",
+              "hotel_id", "hotel_country_code", "h_customer_id",
+              "customer_nationality",
               "guest_nationality_country_name",
-              "origin_country_code", "language", "original_payment_method", "original_payment_type",
+              "origin_country_code", "language", "original_payment_method",
+              "original_payment_type",
               "original_payment_currency"]
     if y is not None:
         popular_list["accommadation_type_name"] = X["accommadation_type_name"].unique()
@@ -222,15 +235,19 @@ if __name__ == "__main__":
     cols = data.columns.values
 
     our_data, test = sk.model_selection.train_test_split(data, test_size=0.2)
-    train, evaluation = sk.model_selection.train_test_split(our_data, test_size=0.2)
+    train, evaluation = sk.model_selection.train_test_split(our_data,
+                                                            test_size=0.2)
 
     X_train, y_train = train.drop([Y_COL], axis=1), train[Y_COL]
     X_eval, y_eval = evaluation.drop([Y_COL], axis=1), evaluation[Y_COL]
     X_test, y_test = test.drop([Y_COL], axis=1), test[Y_COL]
 
     means, popular = dict(), dict()
-    X_train, y_train, means, popular = preprocess_data(X_train, y_train, means, popular)
-    X_eval, _, _, _ = preprocess_data(X_eval, means=means, popular_list=popular)
+    X_train, y_train, means, popular = preprocess_data(X_train, y_train, means,
+                                                       popular)
+    # %%
+    X_eval, _, _, _ = preprocess_data(X_eval, means=means,
+                                      popular_list=popular)
     X_eval = X_eval.reindex(columns=X_train.columns, fill_value=0)
     y_eval = y_eval.apply(lambda x: 1 if type(x) == str else 0)
 
@@ -240,9 +257,10 @@ if __name__ == "__main__":
 
     # Print the DataFrame
     with pd.option_context('display.max_colwidth', None):
-        pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
-                                         sklearn.ensemble.AdaBoostClassifier(
-                                             sk.tree.DecisionTreeClassifier(max_depth=4), n_estimators=300))
+        pipe = sk.pipeline.make_pipeline(
+            sklearn.preprocessing.StandardScaler(),
+            sklearn.ensemble.AdaBoostClassifier(
+                sk.tree.DecisionTreeClassifier(max_depth=4), n_estimators=300))
         pipe.fit(X_train, y_train)
         print(pipe.score())
 # %%
