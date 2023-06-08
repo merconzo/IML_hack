@@ -69,6 +69,7 @@ def preprocess_data(X: df, y: op_col = None):
         X["has_" + code] = X[code].notnull().astype(int)
     X.loc[:, codes] = X[codes].fillna(0)
 
+    # bool cols
     X.is_user_logged_in = X.is_user_logged_in.astype(int)
     X.is_first_booking = X.is_first_booking.astype(int)
 
@@ -97,15 +98,32 @@ def preprocess_data(X: df, y: op_col = None):
     X.days_book_to_checkin[X.days_book_to_checkin < 0] = 0
     X["satying_duration"] = (pd.to_datetime(X_train.checkout_date) -
                              pd.to_datetime(X_train.checkin_date)).dt.days
+    X["hotel_age_days"] = (
+            pd.to_datetime(X_train.checkin_date) - pd.to_datetime(
+        X_train.hotel_live_date)).dt.days
 
     # prices
     X["total_price_per_night"] = X.original_selling_amount / X.satying_duration
     X["room_price_per_night"] = X.total_price_per_night / X.no_of_room
     X["total_price_for_adult"] = X.original_selling_amount / X.no_of_adults
-    X[
-        "total_price_for_adult_per_night"] = X.total_price_for_adult / \
-                                             X.satying_duration
+    X["total_price_for_adult_per_night"] = X.total_price_for_adult / \
+                                           X.satying_duration
+    dates_cols = ["booking_datetime", "checkin_date", "checkout_date",
+                  "hotel_live_date"]
+    X.drop(dates_cols, axis=1, inplace=True)
 
+    # dummies_cols  TODO: delete after treatment
+    dummies_cols = ["hotel_id", "hotel_country_code",
+                    "accommadation_type_name", "charge_option",
+                    "h_customer_id", "customer_nationality",
+                    "guest_nationality_country_name", "origin_country_code",
+                    "language", "original_payment_method",
+                    "original_payment_type", "original_payment_currency",
+                    "cancellation_policy_code", "hotel_area_code",
+                    "hotel_brand_code", "hotel_chain_code", "hotel_city_code"]
+    X.drop(dummies_cols, axis=1, inplace=True)
+
+    # DONE!
     return X.drop(Y_COL, axis=1), X[Y_COL] if y is not None else X
 
 
