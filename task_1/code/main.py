@@ -168,6 +168,22 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X["total_price_for_adult"] = X.original_selling_amount / X.no_of_adults
     X["total_price_for_adult_per_night"] = X.total_price_for_adult / \
                                            X.satying_duration
+
+    # X['double_booking'] = 0
+    # for group_name, group_df in X.groupby('h_customer_id'):
+    #     # Shift the checkout_date column by one row to compare with the next
+    #     group_df = group_df.sort_values(by='checkin_date')
+    #     # booking's checkin_date
+    #     group_df['previous_checkout_date'] = group_df['checkout_date'].shift()
+
+    #     # Compare the current booking's checkin_date with the previous
+    #     # booking's checkout_date
+    #     double_bookings = group_df['checkin_date'] < group_df[
+    #         'previous_checkout_date']
+
+    #     # Update the 'double_booking' column for the double booking rows
+    #     X.loc[double_bookings.index, 'double_booking'] = 1
+
     dates_cols = ["booking_datetime", "checkin_date", "checkout_date",
                   "hotel_live_date"]
     X.drop(dates_cols, axis=1, inplace=True)
@@ -175,8 +191,10 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     # costumer
     X["no_orders_history"] = X.h_customer_id.map(X.h_customer_id.value_counts())
 
-    X[['max_fee', 'min_fee', 'is_after_deadline']] = X.apply(get_fee, axis=1, result_type='expand')
-    X.drop(["cancellation_policy_code"], axis=1, inplace=True)
+    X[['max_fee', "days_for_max", 'min_fee', 'days_for_min',
+       'is_after_deadline']] = X.apply(get_fee, axis=1, result_type='expand')
+
+ 
 
     # dummies
     dummis = ["accommadation_type_name", "hotel_brand_code", "hotel_chain_code", "hotel_city_code", "hotel_area_code",
