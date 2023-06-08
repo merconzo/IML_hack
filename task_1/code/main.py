@@ -8,6 +8,7 @@ from typing import Optional
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from hackathon_code.explore_data import random_forest_exploring
+import re
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -20,6 +21,7 @@ op_col = Optional[col]
 
 # constants
 Y_COL = "cancellation_datetime"
+CANCEL_COL = "cancellation_policy_code"
 
 
 def make_dummies(X: df, column_name: str, ratio: int):
@@ -29,6 +31,44 @@ def make_dummies(X: df, column_name: str, ratio: int):
     popular_list = X[column_name].unique().tolist()
     X = pd.get_dummies(X, prefix=column_name, columns=[column_name], dtype=int)
     return X, popular_list
+
+def get_fee(row):
+    cancel_codes = row[CANCEL_COL].split('_')
+    if '100P' in cancel_codes:
+        cancel_codes.remove('100P')
+    days_book_to_checkin = row.days_book_to_checkin
+    night_charge = row.room_price_per_night
+    total_charge = row.original_selling_amount
+    if not cancel_codes:
+        return None, None, None
+    code_pattern = r'\d+D\d+[PN]'
+    possible_fees = []
+    after_lst = []
+    days = []
+    for code in cancel_codes:
+        if not re.match(code_pattern, code):
+            continue
+        nums = re.findall(r'\d+', code)
+        days_cancel_before_checkin, charge_num = int(nums[0]), int(nums[1])
+        is_p = True if code[-1] == 'P' else False
+        is_after_deadline = days_book_to_checkin <= days_cancel_before_checkin
+        fee = (charge_num / 100) * total_charge if is_p else charge_num * night_charge
+        possible_fees.append(fee) 
+        after_lst.append(is_after_deadline)
+        days.append(days_cancel_before_checkin)
+    if possible_fees:
+        max_val = max(possible_fees)
+        days_for_max = days[possible_fees.index(max_val)]
+        min_val = min(possible_fees)
+        days_for_min = days[possible_fees.index(min_val)]
+    else:
+        max_val = total_charge
+        days_for_max = days_book_to_checkin
+        min_val = night_charge
+        days_for_min = days_book_to_checkin
+    all_after = 1 if all(after_lst) else 0
+    return max_val, min_val, all_after
+        
 
 # %%
 def preprocess_data(X: df, y: op_col = None):
@@ -133,7 +173,9 @@ def preprocess_data(X: df, y: op_col = None):
     # costumer 
     X["no_orders_history"] = X_train.h_customer_id.map(
         X_train.h_customer_id.value_counts())
-    X.drop(["cancellation_policy_code"], axis=1, inplace=True)
+
+    X[['max_fee', 'min_fee', 'is_after_deadline']] = X.apply(get_fee, axis=1, result_type='expand')
+    X.drop(["cancellation_policy_code"], axis=1, inplace=True) 
 
     # dummies
     X = pd.get_dummies(X, prefix='accommadation_type_name', columns=['accommadation_type_name'], dtype=int)
