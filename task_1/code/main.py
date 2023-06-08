@@ -40,8 +40,11 @@ def preprocess_data(X: df, y: op_col = None):
     single
     DataFrame or a Tuple[DataFrame, Series]
     """
+    if y is not None:  # train
+        y.rename(Y_COL, inplace=True)
+        X = pd.concat([X, y], axis=1)
     try:
-         X.drop(["h_booking_id"], inplace=True)
+        X.drop(["h_booking_id"], inplace=True)
     except:
         pass
     # X.replace("UNKNOWN", None, inplace=True)
@@ -49,8 +52,10 @@ def preprocess_data(X: df, y: op_col = None):
     X.is_first_booking = X.is_first_booking.astype(int)
 
     # rooms
-    X["total_guests_num"] = X.no_of_adults + X.no_of_children
-    X["guests_to_rooms_ration"] = X["total_guests_num"] / X["no_of_room"]
+    X["no_total_guests"] = X.no_of_adults + X.no_of_children
+    X["guests_to_rooms_ratio"] = X["no_total_guests"] / X["no_of_room"]
+    X = X[
+        (1 <= X["guests_to_rooms_ratio"]) & (X["guests_to_rooms_ratio"] < 17)]
 
     # dates
     X["booking_day_of_year"] = pd.to_datetime(
@@ -74,7 +79,7 @@ if __name__ == "__main__":
 
     # %% plots
     px.scatter(X_train, x="no_of_adults", y="no_of_room").show()
-    
+
     # go.Figure([
     #     go.Scatter(x=X_train.no_of_adults,
     #                y=X_train.no_of_room,
@@ -85,7 +90,6 @@ if __name__ == "__main__":
     #     xaxis=dict(title=f"no_of_adults", showgrid=True),
     #     yaxis=dict(title=f"no_of_room", showgrid=True)
     #     ).show()
-    
 
     # %%
     random_forest_exploring(X_train, y_train)
