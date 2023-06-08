@@ -74,8 +74,6 @@ def preprocess_data(X: df, y: op_col = None):
              "original_payment_method", "customer_nationality",
              "cancellation_policy_code", "accommadation_type_name",
              "guest_nationality_country_name"]
-    # for code in codes:
-    #     X["has_" + code] = X[code].notnull().astype(int)
     X.loc[:, codes] = X[codes].fillna("UNKNOWN")
 
     # means TODO: smarter means?
@@ -140,6 +138,9 @@ def preprocess_data(X: df, y: op_col = None):
     # dummies
     X = pd.get_dummies(X, prefix='accommadation_type_name', columns=['accommadation_type_name'], dtype=int)
     X, popular_brand_codes = make_dummies(X, 'hotel_brand_code', 100)
+    X, popular_chain_codes = make_dummies(X, 'hotel_chain_code', 100)
+    X, popular_city_codes = make_dummies(X, 'hotel_city_code', 100)
+    X, popular_area_codes = make_dummies(X, 'hotel_area_code', 100)
     X, popular_hotel_id = make_dummies(X, 'hotel_id', 30)
     X, popular_hotel_country_code = make_dummies(X, 'hotel_country_code', 30)
     # print(len(popular_hotel_country_code))
