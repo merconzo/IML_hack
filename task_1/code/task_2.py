@@ -45,17 +45,17 @@ def make_dummies(X: df, column_name: str, ratio: int):
     X = pd.get_dummies(X, prefix=column_name, columns=[column_name], dtype=int)
     return X, popular_list
 
-def get_fee(row):
+def get_cancel_days(row):
     cancel_codes = row[CANCEL_COL].split('_')
     if '100P' in cancel_codes:
         cancel_codes.remove('100P')
     days_book_to_checkin = row.days_book_to_checkin
     if not cancel_codes:
-        return None, None, None
+        return np.nan, np.nan, 1
     code_pattern = r'\d+D\d+[PN]'
-    possible_fees = []
     after_lst = []
     days = []
+    possible_p = []
     for code in cancel_codes:
         if not re.match(code_pattern, code):
             continue
@@ -65,10 +65,12 @@ def get_fee(row):
         is_after_deadline = days_book_to_checkin <= days_cancel_before_checkin
         after_lst.append(is_after_deadline)
         days.append(days_cancel_before_checkin)
+        possible_p.append(is_p)
 
-    days_for_min = days_book_to_checkin
+    max_days = max(days) if days else np.nan
+    min_days = min(days) if days else np.nan
     all_after = 1 if all(after_lst) else 0
-    return
+    return max_days, min_days, all_after
 
 
 # %%
@@ -156,7 +158,10 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     X["no_orders_history"] = X.h_customer_id.map(
         X.h_customer_id.value_counts())
     # TODO: dummies?
+    X[['max_days_to_cancel', 'min_days_to_cancel', 'is_after_deadline']
+    ] = X.apply(get_cancel_days, axis=1, result_type='expand')
     X.drop(["cancellation_policy_code"], axis=1, inplace=True)
+    # TODO: fillna
 
     # dummies
     dummis = ["accommadation_type_name", "hotel_brand_code",
