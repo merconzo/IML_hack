@@ -22,6 +22,14 @@ op_col = Optional[col]
 Y_COL = "cancellation_datetime"
 
 
+def make_dummies(X: df, column_name: str, ratio: int):
+    value_counts = X[column_name].value_counts()
+    to_replace = value_counts[value_counts < ratio].index
+    X[column_name] = X[column_name].replace(to_replace, 'UNPOPULAR')
+    popular_list = X[column_name].unique().tolist()
+    X = pd.get_dummies(X, prefix=column_name, columns=[column_name], dtype=int)
+    return X, popular_list
+
 # %%
 def preprocess_data(X: df, y: op_col = None):
     """
@@ -65,9 +73,28 @@ def preprocess_data(X: df, y: op_col = None):
              "original_payment_method", "customer_nationality",
              "cancellation_policy_code", "accommadation_type_name",
              "guest_nationality_country_name"]
-    for code in codes:
-        X["has_" + code] = X[code].notnull().astype(int)
-    X.loc[:, codes] = X[codes].fillna(0)
+    # for code in codes:
+    #     X["has_" + code] = X[code].notnull().astype(int)
+    X.loc[:, codes] = X[codes].fillna("UNKNOWN")
+
+    # dummies
+    X = pd.get_dummies(X, prefix='accommadation_type_name', columns=['accommadation_type_name'], dtype=int)
+    X, popular_brand_codes = make_dummies(X, 'hotel_brand_code', 100)
+    X, popular_hotel_id = make_dummies(X, 'hotel_id', 30)
+    X, popular_hotel_country_code = make_dummies(X, 'hotel_country_code', 30)
+    # print(len(popular_hotel_country_code))
+    X, popular_h_customer_id = make_dummies(X, 'h_customer_id', 20)
+    # print(len(popular_h_customer_id))
+    X, popular_customer_nationality = make_dummies(X, 'customer_nationality', 30)
+    # print(len(popular_customer_nationality))
+    X, popular_guest_nationality_country_name = make_dummies(X, 'guest_nationality_country_name', 30)
+    X, popular_origin_country_code = make_dummies(X, 'origin_country_code', 30)
+    X, popular_language = make_dummies(X, 'language', 30)
+    X, popular_original_payment_method = make_dummies(X, 'original_payment_method', 30)
+    X, popular_original_payment_type = make_dummies(X, 'original_payment_type', 30)
+    X, popular_original_payment_currency = make_dummies(X, 'original_payment_currency', 30)
+
+
 
     # bool cols
     X.is_user_logged_in = X.is_user_logged_in.astype(int)
@@ -166,11 +193,12 @@ if __name__ == "__main__":
 
     # Print the DataFrame
     with pd.option_context('display.max_colwidth', None):
-        bla = X_train["hotel_id"].value_counts()
+        # bla = _train["hotel_id"].value_counts()
         # print(len(bla[bla > 30]))
         # print(len(set(X_train["guest_nationality_country_name"])))
         # print(X_train[:100])
         all = pd.concat([X_train, y_train], axis=1)
         null_rows = all[X_train.isnull().any(axis=1)]
-        print(all[:100])
+        print(all[:1])
+        print(all.size)
 # %%
