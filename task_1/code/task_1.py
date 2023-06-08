@@ -226,6 +226,8 @@ def execute_task_1(data, test):
                                      sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1),
                                                                          n_estimators=50))
     pipe.fit(X_train, y_train)
+    dump(pipe, "model_1.joblib")
+    # pipe = load("model_1.joblib")
     return pipe.predict(test)
 
 
