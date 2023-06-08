@@ -45,6 +45,24 @@ def preprocess_data(X: df, y: op_col = None):
         X.drop(["h_booking_id"], axis=1, inplace=True)
     except:
         pass
+
+    # nans replacements
+    X.replace("UNKNOWN", np.nan, inplace=True)
+    X["charge_option"] = X["charge_option"].apply(lambda x: np.where(x == 'Pay Now', 1, 0))
+
+    requests = ["request_earlycheckin", "request_airport", "request_twinbeds", "request_largebed",
+                       "request_highfloor", "request_latecheckin", "request_nonesmoke"]
+
+    for request in requests:
+        X["is_available_to_" + request] = X[request].notnull().astype(int)
+    X.loc[:, requests] = X[requests].fillna(0)
+    codes = ["hotel_brand_code", "hotel_chain_code", "hotel_country_code", "origin_country_code",
+             "original_payment_method", "customer_nationality", "cancellation_policy_code", "accommadation_type_name",
+             "guest_nationality_country_name"]
+    for code in codes:
+        X["has_" + code] = X[code].notnull().astype(int)
+    X.loc[:, codes] = X[codes].fillna(0)
+
     X.is_user_logged_in = X.is_user_logged_in.astype(int)
     X.is_first_booking = X.is_first_booking.astype(int)
 
@@ -98,4 +116,18 @@ if __name__ == "__main__":
     #     yaxis=dict(title=f"no_of_room", showgrid=True)
     #     ).show()
 
+    #%%
+    pd.set_option('display.max_columns', None)  # Show all columns
+    pd.set_option('display.max_rows', None)  # Show all rows
+    pd.set_option('display.expand_frame_repr', False)  # Disable line breaks
+
+    # Print the DataFrame
+    with pd.option_context('display.max_colwidth', None):
+        bla = X_train["hotel_id"].value_counts()
+        # print(len(bla[bla > 30]))
+        # print(len(set(X_train["guest_nationality_country_name"])))
+        # print(X_train[:100])
+        all = pd.concat([X_train, y_train], axis=1)
+        null_rows = all[X_train.isnull().any(axis=1)]
+        print(all[:100])
 # %%
