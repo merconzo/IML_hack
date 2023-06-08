@@ -64,7 +64,7 @@ def preprocess_data(X: df, y: op_col = None):
     X["booking_day_of_year"] = pd.to_datetime(
         X["booking_datetime"]).dt.dayofyear
 
-    return X.drop(Y_COL), X[Y_COL] if y is not None else X
+    return X.drop(Y_COL, axis=1), X[Y_COL] if y is not None else X
 
 
 # %%
