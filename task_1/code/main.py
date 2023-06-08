@@ -42,10 +42,9 @@ def preprocess_data(X: df, y: op_col = None):
         y.rename(Y_COL, inplace=True)
         X = pd.concat([X, y], axis=1)
     try:
-        X.drop(["h_booking_id"], inplace=True)
+        X.drop(["h_booking_id"], axis=1, inplace=True)
     except:
         pass
-    # X.replace("UNKNOWN", None, inplace=True)
     X.is_user_logged_in = X.is_user_logged_in.astype(int)
     X.is_first_booking = X.is_first_booking.astype(int)
 
@@ -55,7 +54,6 @@ def preprocess_data(X: df, y: op_col = None):
     X = X[
         (1 <= X["guests_to_rooms_ratio"]) & (X["guests_to_rooms_ratio"] < 17)]
     
-
     # booking times
     X["booking_year"] = pd.to_datetime(X["booking_datetime"]).dt.year
     X["booking_month"] = pd.to_datetime(X["booking_datetime"]).dt.month
@@ -63,6 +61,12 @@ def preprocess_data(X: df, y: op_col = None):
         X["booking_datetime"]).dt.day_of_week
     X["booking_day_of_year"] = pd.to_datetime(
         X["booking_datetime"]).dt.dayofyear
+    X["booking_hour"] = pd.to_datetime(
+        X["booking_datetime"]).dt.hour
+    X[["checkin_date", "checkout_date"]] = X[["checkin_date", "checkout_date"]].apply(pd.to_datetime)
+    X["checkin_dayofyear"] = pd.to_datetime(X["checkin_date"]).dt.dayofyear
+    X["checkout_dayofyear"] = pd.to_datetime(X["checkout_date"]).dt.dayofyear
+    X["days_book_to_checkin"] = (pd.to_datetime(X_train.checkin_date) - pd.to_datetime(X_train.booking_datetime)).dt.days
 
     return X.drop(Y_COL, axis=1), X[Y_COL] if y is not None else X
 
@@ -77,11 +81,11 @@ if __name__ == "__main__":
         Y_COL]
     X_test, y_test = test.drop([Y_COL], axis=1), test[
         Y_COL]
-    # %%
+
     X_train, y_train = preprocess_data(X_train, y_train)
 
     # %% plots
-    px.scatter(X_train, x="no_of_adults", y="no_of_room").show()
+    # px.scatter(X_train, x="no_of_adults", y="no_of_room").show()
 
     # go.Figure([
     #     go.Scatter(x=X_train.no_of_adults,
@@ -94,6 +98,4 @@ if __name__ == "__main__":
     #     yaxis=dict(title=f"no_of_room", showgrid=True)
     #     ).show()
 
-    # %%
-    random_forest_exploring(X_train, y_train)
 # %%
