@@ -36,9 +36,7 @@ def preprocess_data(X: df, y: op_col = None):
 
     Returns
     -------
-    Post-processed design matrix and response vector (prices) - either as a
-    single
-    DataFrame or a Tuple[DataFrame, Series]
+    Post-processed design matrix and response vector (prices) - either as a single DataFrame or a Tuple[DataFrame, Series]
     """
     if y is not None:  # train
         y.rename(Y_COL, inplace=True)
@@ -56,12 +54,17 @@ def preprocess_data(X: df, y: op_col = None):
     X["guests_to_rooms_ratio"] = X["no_total_guests"] / X["no_of_room"]
     X = X[
         (1 <= X["guests_to_rooms_ratio"]) & (X["guests_to_rooms_ratio"] < 17)]
+    
 
-    # dates
+    # booking times
+    X["booking_year"] = pd.to_datetime(X["booking_datetime"]).dt.year
+    X["booking_month"] = pd.to_datetime(X["booking_datetime"]).dt.month
+    X["booking_day_of_week"] = pd.to_datetime(
+        X["booking_datetime"]).dt.day_of_week
     X["booking_day_of_year"] = pd.to_datetime(
         X["booking_datetime"]).dt.dayofyear
 
-    return X, y
+    return X.drop(Y_COL), X[Y_COL] if y is not None else X
 
 
 # %%
