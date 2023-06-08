@@ -201,20 +201,20 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
     if y is not None:
         popular_list["accommadation_type_name"] = X["accommadation_type_name"].unique()
         X = pd.get_dummies(X, prefix='accommadation_type_name', columns=['accommadation_type_name'], dtype=int)
-        X, popular_list["hotel_brand_code"] = make_dummies(X, 'hotel_brand_code', 100)
-        X, popular_list["hotel_chain_code"] = make_dummies(X, 'hotel_chain_code', 100)
-        X, popular_list["hotel_city_code"] = make_dummies(X, 'hotel_city_code', 100)
-        X, popular_list["hotel_area_code"] = make_dummies(X, 'hotel_area_code', 100)
-        X, popular_list["hotel_id"] = make_dummies(X, 'hotel_id', 30)
-        X, popular_list["hotel_country_code"] = make_dummies(X, 'hotel_country_code', 30)
-        X, popular_list["h_customer_id"] = make_dummies(X, 'h_customer_id', 20)
-        X, popular_list["customer_nationality"] = make_dummies(X, 'customer_nationality', 30)
-        X, popular_list["guest_nationality_country_name"] = make_dummies(X, 'guest_nationality_country_name', 30)
-        X, popular_list["origin_country_code"] = make_dummies(X, 'origin_country_code', 30)
-        X, popular_list["language"] = make_dummies(X, 'language', 30)
-        X, popular_list["original_payment_method"] = make_dummies(X, 'original_payment_method', 30)
-        X, popular_list["original_payment_type"] = make_dummies(X, 'original_payment_type', 30)
-        X, popular_list["original_payment_currency"] = make_dummies(X, 'original_payment_currency', 30)
+        X, popular_list["hotel_brand_code"] = make_dummies(X, 'hotel_brand_code', 20)
+        X, popular_list["hotel_chain_code"] = make_dummies(X, 'hotel_chain_code', 20)
+        X, popular_list["hotel_city_code"] = make_dummies(X, 'hotel_city_code', 20)
+        X, popular_list["hotel_area_code"] = make_dummies(X, 'hotel_area_code', 20)
+        X, popular_list["hotel_id"] = make_dummies(X, 'hotel_id', 10)
+        X, popular_list["hotel_country_code"] = make_dummies(X, 'hotel_country_code', 10)
+        X, popular_list["h_customer_id"] = make_dummies(X, 'h_customer_id', 5)
+        X, popular_list["customer_nationality"] = make_dummies(X, 'customer_nationality', 10)
+        X, popular_list["guest_nationality_country_name"] = make_dummies(X, 'guest_nationality_country_name', 10)
+        X, popular_list["origin_country_code"] = make_dummies(X, 'origin_country_code', 10)
+        X, popular_list["language"] = make_dummies(X, 'language', 10)
+        X, popular_list["original_payment_method"] = make_dummies(X, 'original_payment_method', 10)
+        X, popular_list["original_payment_type"] = make_dummies(X, 'original_payment_type', 10)
+        X, popular_list["original_payment_currency"] = make_dummies(X, 'original_payment_currency', 10)
 
     else:
         for dummy in dummis:
@@ -235,19 +235,16 @@ if __name__ == "__main__":
     cols = data.columns.values
 
     our_data, test = sk.model_selection.train_test_split(data, test_size=0.2)
-    train, evaluation = sk.model_selection.train_test_split(our_data,
-                                                            test_size=0.2)
+    train, evaluation = sk.model_selection.train_test_split(our_data, test_size=0.2)
 
     X_train, y_train = train.drop([Y_COL], axis=1), train[Y_COL]
     X_eval, y_eval = evaluation.drop([Y_COL], axis=1), evaluation[Y_COL]
     X_test, y_test = test.drop([Y_COL], axis=1), test[Y_COL]
 
     means, popular = dict(), dict()
-    X_train, y_train, means, popular = preprocess_data(X_train, y_train, means,
-                                                       popular)
-    # %%
-    X_eval, _, _, _ = preprocess_data(X_eval, means=means,
-                                      popular_list=popular)
+    X_train, y_train, means, popular = preprocess_data(X_train, y_train, means, popular)
+    booking_id = X_eval["h_booking_id"]
+    X_eval, _, _, _ = preprocess_data(X_eval, means=means, popular_list=popular)
     X_eval = X_eval.reindex(columns=X_train.columns, fill_value=0)
     y_eval = y_eval.apply(lambda x: 1 if type(x) == str else 0)
 
@@ -257,10 +254,14 @@ if __name__ == "__main__":
 
     # Print the DataFrame
     with pd.option_context('display.max_colwidth', None):
-        pipe = sk.pipeline.make_pipeline(
-            sklearn.preprocessing.StandardScaler(),
-            sklearn.ensemble.AdaBoostClassifier(
-                sk.tree.DecisionTreeClassifier(max_depth=4), n_estimators=300))
+        pipe = sk.pipeline.make_pipeline(sklearn.preprocessing.StandardScaler(),
+                                         sklearn.ensemble.AdaBoostClassifier(
+                                             sk.tree.DecisionTreeClassifier(max_depth=1), n_estimators=50))
         pipe.fit(X_train, y_train)
-        print(pipe.score())
+        predicted = pipe.predict(X_eval)
+        print(predicted)
+        result = pd.concat([booking_id, pd.Series(predicted)], axis=1)
+        result.columns = ["ID", "cancellation"]
+        print(result)
+        print(pipe.score(X_eval, y_eval))
 # %%
