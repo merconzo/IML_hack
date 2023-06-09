@@ -40,7 +40,7 @@ if __name__ == "__main__":
         result_1.to_csv("../predictions/agoda_cancellation_prediction.csv",
                         index=False)
     except:
-        pass
+        print("ERROR: task 1")
 
     # task 2
     try:
@@ -53,10 +53,11 @@ if __name__ == "__main__":
         result_2.to_csv("../predictions/agoda_cost_of_cancellation.csv",
                         index=False)
     except:
-        pass
+        print("ERROR: task 2")
 
     ###  part three  ###
     # explore some data :) you can uncomment & call the following function:
     # explore(data)
+
 
 # %%
