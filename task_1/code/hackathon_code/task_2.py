@@ -14,7 +14,7 @@ op_col = Optional[col]
 Y_COL = "original_selling_amount"
 CANCEL_COL = "cancellation_policy_code"
 PRED_COL = "predicted_selling_amount"
-OUT_FILE_NAME = "agoda_cost_of_cancellation.csv"
+OUT_FILE_NAME = "../../predictions/agoda_cost_of_cancellation.csv"
 NO_CANCEL = (-1)
 
 
@@ -203,10 +203,6 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
         return X.drop(Y_COL, axis=1), X[Y_COL], means, popular_list
     else:
         return X, None, None, None
-
-
-# %%
-
 
 def execute_task_2(our_model, test):
     processed_test, _, _, _ = preprocess_data(copy.deepcopy(test), means=our_model.means,
