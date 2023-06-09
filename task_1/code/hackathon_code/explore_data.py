@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
+REQUESTS = ["request_nonesmoke", "request_latecheckin",
+            "request_highfloor", "request_largebed", "request_twinbeds",
+            "request_airport", "request_earlycheckin"]
+
 
 def explore_days_between_booking_and_cancelation(df):
     canceled_indices = df[df["cancellation_datetime"].apply(lambda x: type(x) == str)]
@@ -61,11 +65,57 @@ def explore_relation_of_booking_and_checkin_difference(df):
     # getting the mean of cancelation per this data
     binary_y = df["cancellation_datetime"].apply(lambda x: 1 if type(x) == str else 0)
     # getting the cancelation rate per day between booking and checkin
+    number_of_reservations = [np.sum(day_between_booking_and_checkin == val) for val in
+                              day_between_booking_and_checkin.unique()]
     cancelation_rate = [np.mean(binary_y[day_between_booking_and_checkin == val]) for val in
                         day_between_booking_and_checkin.unique()]
     # plotting the cancelation rate
+
     fig = px.bar(pd.DataFrame({"Weeks between booking and checkin": day_between_booking_and_checkin.unique(),
-                               "Cancelation Rate": cancelation_rate}),
-                 x="Weeks between booking and checkin", y="Cancelation Rate", color="Cancelation Rate"
+                               "Number Of Reservations": number_of_reservations
+                                  , "Cancelation Rate": cancelation_rate}),
+                 x="Weeks between booking and checkin", y="Number Of Reservations", color="Cancelation Rate"
                  , title="Cancelation Rate per Weeks Between Booking and Checkin")
+    # making y on log scale
+    fig.update_layout(yaxis_type="log")
     fig.show()
+
+
+def explore_parameter_relation(df, param, proportion=False, log_y=False):
+    data = pd.DataFrame()
+    if param == "original_selling_amount":
+        data["Sell Price, log scale"] = df[param].apply(lambda x: np.log(x) if type(x) != str and x > 0 else 0)
+        param = "Sell Price, log scale"
+    elif param == "cancellation_policy_code":
+        data[param] = df[param].apply(lambda x: x.split("D")[0]).apply(
+            lambda x: "Can't cancel without a fine" if x == "365" else "Some time allowed for cancellation")
+    elif param == "hour of booking":
+        data[param] = pd.to_datetime(df["booking_datetime"]).dt.hour
+    elif param == "duration of stay":
+        data[param] = (pd.to_datetime(df["checkout_date"]).dt.day_of_year - pd.to_datetime(
+            df["checkin_date"]).dt.day_of_year).apply(lambda x: min(x, 10))
+    elif param == "year hotel went online":
+        data[param] = pd.to_datetime(df["hotel_live_date"]).dt.year
+        data.sort_values(by=param, inplace=True)
+        data[param] = data[param].astype(str)
+    elif param == "number of requests":
+        data[param] = df[REQUESTS].sum(axis=1)
+    else:
+        data[param] = df[param]
+    data["cancelled"] = df["cancellation_datetime"].apply(lambda x: 1 if type(x) == str else 0)
+    if not proportion:
+        fig = px.histogram(data, x=param, color="cancelled", title="Relation of " + param + " to Cancelation Rate")
+    else:
+        agg_df = pd.DataFrame()
+        agg_df[param] = data[param].unique()
+        agg_df["Cancellation Rate"] = [np.mean(data[data[param] == val]["cancelled"]) for val in agg_df[param]]
+        agg_df["number of orders"] = [np.sum(data[param] == val) for val in agg_df[param]]
+        appendix = ""
+        if log_y:
+            appendix = ", log scale"
+            agg_df["number of orders" + appendix] = agg_df["number of orders"].apply(lambda x: np.log(x))
+        fig = px.bar(agg_df, x=param, y="number of orders" + appendix,
+                     title="Relation of " + param + " to Cancelation Rate", color="Cancellation Rate")
+
+    fig.show()
+
