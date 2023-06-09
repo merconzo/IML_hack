@@ -56,7 +56,7 @@ if __name__ == "__main__":
         pass
 
     ###  part three  ###
-    # explore some data :)
-    explore(data)
+    # explore some data :) you can uncomment & call the following function:
+    # explore(data)
 
 # %%
