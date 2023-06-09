@@ -120,11 +120,11 @@ def explore_parameter_relation(df, param, proportion=False, log_y=False):
     fig.show()
 
 
-def explore():
-    # data_exploring.explore_days_between_booking_and_cancelation(train)
-    # data_exploring.explore_days_between_cancelation_and_checkin(train)
-    # data_exploring.explore_relation_of_booking_and_checkin_difference(train)
-    # data_exploring.explore_parameter_relation(train, "cancellation_policy_code")
+def explore(data):
+    explore_days_between_booking_and_cancelation(data)
+    explore_days_between_cancelation_and_checkin(data)
+    explore_relation_of_booking_and_checkin_difference(train)
+    explore_parameter_relation(data, "cancellation_policy_code")
     # data_exploring.explore_parameter_relation(train, "original_selling_amount")
     # data_exploring.explore_parameter_relation(train, "hour of booking")
     # data_exploring.explore_parameter_relation(train, "is_first_booking")
