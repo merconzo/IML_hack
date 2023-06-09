@@ -215,6 +215,7 @@ def preprocess_data(X: df, y: op_col = None, popular_list=None, means=None):
 
 
 # %%
+
 def execute_task_1(our_model, test):
     test, _, _, _ = preprocess_data(test, means=our_model.means, popular_list=our_model.popular_list)
     test = test.reindex(columns=our_model.columns, fill_value=0)

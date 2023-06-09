@@ -3,6 +3,7 @@
 # sys.path.append("./")
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 
 # %%
 import sklearn as sk
@@ -16,9 +17,10 @@ from task_2 import execute_task_2, prepare_train_2
 
 if __name__ == "__main__":
     np.random.seed(0)
+    # part one
     data = pd.read_csv("./hackathon_code/data/agoda_cancellation_train.csv")
     # model_1 = make_pipeline(sklearn.preprocessing.StandardScaler(),
-    #                         sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=1),
+    #                         sklearn.ensemble.AdaBoostClassifier(sk.tree.DecisionTreeClassifier(max_depth=2),
     #                                                             n_estimators=50))
     # model_2 = make_pipeline(sklearn.preprocessing.StandardScaler(),
     #                         sklearn.ensemble.HistGradientBoostingRegressor())
@@ -27,6 +29,7 @@ if __name__ == "__main__":
     model_1 = load("model_1.joblib")
     model_2 = load("model_2.joblib")
 
+    # part two
     test_1 = pd.read_csv("./hackathon_code/data/Agoda_Test_1.csv")
     booking_id_1 = test_1["h_booking_id"]
     prediction_1 = execute_task_1(model_1, test_1)
@@ -39,5 +42,7 @@ if __name__ == "__main__":
     prediction_2 = test_2["original_selling_amount"].where(prediction_cancel_2 == 1, other=-1)
     result_2 = pd.DataFrame({'ID': booking_id_2, 'predicted_selling_amount': prediction_2})
     result_2.to_csv("agoda_cost_of_cancellation.csv", index=False)
+
+    # part three
 
 # %%
