@@ -119,3 +119,22 @@ def explore_parameter_relation(df, param, proportion=False, log_y=False):
 
     fig.show()
 
+
+if __name__ == "__main__":
+    # data_exploring.explore_days_between_booking_and_cancelation(train)
+    # data_exploring.explore_days_between_cancelation_and_checkin(train)
+    # data_exploring.explore_relation_of_booking_and_checkin_difference(train)
+    # data_exploring.explore_parameter_relation(train, "cancellation_policy_code")
+    # data_exploring.explore_parameter_relation(train, "original_selling_amount")
+    # data_exploring.explore_parameter_relation(train, "hour of booking")
+    # data_exploring.explore_parameter_relation(train, "is_first_booking")
+    # data_exploring.explore_parameter_relation(train, "is_user_logged_in")
+    # data_exploring.explore_parameter_relation(train, "guest_is_not_the_customer")
+    # data_exploring.explore_parameter_relation(train, "original_payment_type")
+    # data_exploring.explore_parameter_relation(train, "hotel_star_rating")
+    # data_exploring.explore_parameter_relation(train, "no_of_room")
+    # data_exploring.explore_parameter_relation(train, "no_of_adults")
+    # data_exploring.explore_parameter_relation(train, "duration of stay", proportion=True, log_y=True)
+    # data_exploring.explore_parameter_relation(train, "year hotel went online", proportion=True)
+    # data_exploring.explore_parameter_relation(train, "number of requests", proportion=True)
+    pass
