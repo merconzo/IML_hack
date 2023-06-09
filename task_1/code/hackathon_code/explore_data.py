@@ -137,4 +137,3 @@ def explore(data):
     # data_exploring.explore_parameter_relation(train, "duration of stay", proportion=True, log_y=True)
     # data_exploring.explore_parameter_relation(train, "year hotel went online", proportion=True)
     # data_exploring.explore_parameter_relation(train, "number of requests", proportion=True)
-    pass
